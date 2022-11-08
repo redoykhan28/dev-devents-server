@@ -1,7 +1,7 @@
 const express = require('express')
 const app = express()
 const cors = require('cors')
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config()
 const port = process.env.PORT || 5000
 
@@ -36,13 +36,37 @@ async function run() {
 
         })
 
+        //get service by id
+
+        app.get('/service/:id', async (req, res) => {
+
+            const id = req.params.id
+            const query = { _id: ObjectId(id) }
+            const result = await serviceCollection.findOne(query)
+            res.send(result)
+        })
+
+
         // get service data
         app.get('/service', async (req, res) => {
 
+            //take limit for limited data
+            const limit = parseInt(req.query.limit)
+
             const query = {}
             const cursor = serviceCollection.find(query)
-            const result = await cursor.toArray()
-            res.send(result)
+
+            if (limit) {
+                const result = await cursor.limit(limit).toArray()
+                const sort = result.sort(
+                    (p1, p2) => (p1.date < p2.date) ? 1 : (p1.date > p2.date) ? -1 : 0);
+                res.send(sort)
+            }
+            else {
+                const result = await cursor.toArray()
+                res.send(result)
+            }
+
         })
 
     }
