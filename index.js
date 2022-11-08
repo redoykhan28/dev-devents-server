@@ -10,7 +10,7 @@ app.use(cors())
 app.use(express.json())
 
 //check the root server
-app.get('/', (res, req) => {
+app.get('/', (req, res) => {
 
     res.send('Devent server is running')
 })
@@ -19,12 +19,31 @@ app.get('/', (res, req) => {
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.ytkvvxy.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
-client.connect(err => {
-    const collection = client.db("test").collection("devices");
-    // perform actions on the collection object
-    console.log('connected')
-    client.close();
-});
+
+async function run() {
+
+    try {
+
+        //create db collections
+        const serviceCollection = client.db('DeventDbUser').collection('services')
+
+        // post services
+        app.post('/service', async (req, res) => {
+
+            const service = req.body
+            const result = await serviceCollection.insertOne(service)
+            res.send(result)
+
+        })
+
+    }
+
+    finally {
+
+    }
+}
+
+run().catch(console.dir)
 
 
 
