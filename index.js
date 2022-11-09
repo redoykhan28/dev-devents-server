@@ -30,6 +30,11 @@ async function run() {
         //create db collection for review
         const reviewCollection = client.db('DeventDbUser').collection('reviews')
 
+
+
+
+
+
         // post services
         app.post('/service', async (req, res) => {
 
@@ -80,25 +85,36 @@ async function run() {
 
         })
 
-        // get review by email 
+
+
+
+        // get review by email or by service id 
         app.get('/review', async (req, res) => {
 
-            let query = {}
             if (req.query.email) {
-                query = { email: req.query.email }
+                let query = {}
+                if (req.query.email) {
+                    query = { email: req.query.email }
+                }
+                const cursor = reviewCollection.find(query)
+                const result = await cursor.toArray()
+                res.send(result)
             }
-            const cursor = reviewCollection.find(query)
-            const result = await cursor.toArray()
-            res.send(result)
-        })
 
-        //get review
-        app.get('/review', async (req, res) => {
+            else {
 
-            const query = {}
-            const cursor = reviewCollection.find(query)
-            const result = await cursor.sort({ date: -1 }).toArray()
-            res.send(result)
+                const page = parseInt(req.query.page)
+                const perPage = parseInt(req.query.perPage)
+                let query = {}
+                if (req.query.serviceId) {
+                    query = { serviceId: req.query.serviceId }
+                }
+                const cursor = reviewCollection.find(query)
+                const result = await cursor.sort({ date: -1 }).skip(page * perPage).limit(perPage).toArray()
+                const count = await reviewCollection.estimatedDocumentCount()
+                res.send({ count, result })
+
+            }
 
         })
 
