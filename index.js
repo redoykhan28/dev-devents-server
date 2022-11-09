@@ -1,9 +1,11 @@
 const express = require('express')
 const app = express()
 const cors = require('cors')
+const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config()
 const port = process.env.PORT || 5000
+
 
 //middle ware
 app.use(cors())
@@ -85,8 +87,15 @@ async function run() {
 
         })
 
+        //search review by id
+        app.get('/review/:id', async (req, res) => {
 
+            const id = req.params.id
+            const query = { _id: ObjectId(id) }
+            const result = await reviewCollection.findOne(query)
+            res.send(result)
 
+        })
 
         // get review by email or by service id 
         app.get('/review', async (req, res) => {
@@ -116,6 +125,37 @@ async function run() {
 
             }
 
+        })
+
+
+
+        //delete a review
+        app.delete('/review/:id', async (req, res) => {
+
+            const id = req.params.id
+            const query = { _id: ObjectId(id) }
+            const result = await reviewCollection.deleteOne(query)
+            res.send(result)
+        })
+
+
+        //update review
+        app.put('/update/:id', async (req, res) => {
+
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) }
+            const reviews = req.body;
+            // console.log(reviews)
+            const option = { upsert: true }
+            const updateReview = {
+                $set: {
+
+                    review: reviews.text
+                }
+            }
+
+            const result = await reviewCollection.updateOne(query, updateReview, option)
+            res.send(result)
         })
 
     }
