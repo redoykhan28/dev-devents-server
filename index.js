@@ -24,14 +24,26 @@ async function run() {
 
     try {
 
-        //create db collections
+        //create db collections for services
         const serviceCollection = client.db('DeventDbUser').collection('services')
+
+        //create db collection for review
+        const reviewCollection = client.db('DeventDbUser').collection('reviews')
 
         // post services
         app.post('/service', async (req, res) => {
 
             const service = req.body
             const result = await serviceCollection.insertOne(service)
+            res.send(result)
+
+        })
+
+        //post for review
+        app.post('/review', async (req, res) => {
+
+            const review = req.body
+            const result = await reviewCollection.insertOne(review)
             res.send(result)
 
         })
@@ -66,6 +78,32 @@ async function run() {
                 const result = await cursor.toArray()
                 res.send(result)
             }
+
+
+
+        })
+
+        // get review by email 
+        app.get('/review', async (req, res) => {
+
+            let query = {}
+            if (req.query.email) {
+                query = { email: req.query.email }
+            }
+            const cursor = reviewCollection.find(query)
+            const result = await cursor.toArray()
+            res.send(result)
+        })
+
+        //get review
+        app.get('/review', async (req, res) => {
+
+            const query = {}
+            const cursor = reviewCollection.find(query)
+            const result = await cursor.toArray()
+            const sort = result.sort(
+                (p1, p2) => (p1.date < p2.date) ? 1 : (p1.date > p2.date) ? -1 : 0);
+            res.send(sort)
 
         })
 
