@@ -69,16 +69,13 @@ async function run() {
             const cursor = serviceCollection.find(query)
 
             if (limit) {
-                const result = await cursor.limit(limit).toArray()
-                const sort = result.sort(
-                    (p1, p2) => (p1.date < p2.date) ? 1 : (p1.date > p2.date) ? -1 : 0);
-                res.send(sort)
+                const result = await cursor.sort({ date: -1 }).limit(limit).toArray()
+                res.send(result)
             }
             else {
                 const result = await cursor.toArray()
                 res.send(result)
             }
-
 
 
         })
@@ -100,10 +97,8 @@ async function run() {
 
             const query = {}
             const cursor = reviewCollection.find(query)
-            const result = await cursor.toArray()
-            const sort = result.sort(
-                (p1, p2) => (p1.date < p2.date) ? 1 : (p1.date > p2.date) ? -1 : 0);
-            res.send(sort)
+            const result = await cursor.sort({ date: -1 }).toArray()
+            res.send(result)
 
         })
 
