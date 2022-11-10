@@ -17,6 +17,29 @@ app.get('/', (req, res) => {
     res.send('Devent server is running')
 })
 
+//varify jwt
+function jwtVarify(req, res, next) {
+
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+
+        res.status(401).send({ message: 'Unauthorized access!' })
+    }
+
+    const token = authHeader.split(' ')[1];
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
+
+        if (err) {
+
+            return res.status(403).send({ message: 'Forbidden Access' })
+        }
+
+        req.decoded = decoded
+        next()
+
+    })
+}
+
 //database
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.ytkvvxy.mongodb.net/?retryWrites=true&w=majority`;
@@ -33,9 +56,16 @@ async function run() {
         const reviewCollection = client.db('DeventDbUser').collection('reviews')
 
 
+        //post for jwt token
+        app.post('/jwt', (req, res) => {
+
+            const user = req.body
+            // console.log(user)
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '30d' })
+            res.send({ token })
 
 
-
+        })
 
         // post services
         app.post('/service', async (req, res) => {
@@ -46,6 +76,7 @@ async function run() {
 
         })
 
+
         //post for review
         app.post('/review', async (req, res) => {
 
@@ -55,8 +86,8 @@ async function run() {
 
         })
 
-        //get service by id
 
+        //get service by id
         app.get('/service/:id', async (req, res) => {
 
             const id = req.params.id
@@ -64,6 +95,7 @@ async function run() {
             const result = await serviceCollection.findOne(query)
             res.send(result)
         })
+
 
 
         // get service data
@@ -87,8 +119,24 @@ async function run() {
 
         })
 
-        //search review by id
-        app.get('/review/:id', async (req, res) => {
+        // get review by service id 
+        app.get('/review/servicereview', async (req, res) => {
+
+            const page = parseInt(req.query.page)
+            const perPage = parseInt(req.query.perPage)
+            let query = {}
+            if (req.query.serviceId) {
+                query = { serviceId: req.query.serviceId }
+            }
+            const cursor = reviewCollection.find(query)
+            const result = await cursor.sort({ date: -1 }).skip(page * perPage).limit(perPage).toArray()
+            const count = await reviewCollection.estimatedDocumentCount()
+            res.send({ count, result })
+
+        })
+
+        // //search review by id
+        app.get('/review/dynamic/:id', async (req, res) => {
 
             const id = req.params.id
             const query = { _id: ObjectId(id) }
@@ -97,40 +145,27 @@ async function run() {
 
         })
 
-        // get review by email or by service id 
-        app.get('/review', async (req, res) => {
+        // //get review by email
+        app.get('/review/mail', jwtVarify, async (req, res) => {
+            const decoded = req.decoded
+            console.log('inside review', decoded)
 
+            if (decoded.email !== req.query.email) {
+
+                res.status(403).send({ message: 'Forbidden Access' })
+            }
+
+            let query = {}
             if (req.query.email) {
-                let query = {}
-                if (req.query.email) {
-                    query = { email: req.query.email }
-                }
-                const cursor = reviewCollection.find(query)
-                const result = await cursor.toArray()
-                res.send(result)
+                query = { email: req.query.email }
             }
-
-            else {
-
-                const page = parseInt(req.query.page)
-                const perPage = parseInt(req.query.perPage)
-                let query = {}
-                if (req.query.serviceId) {
-                    query = { serviceId: req.query.serviceId }
-                }
-                const cursor = reviewCollection.find(query)
-                const result = await cursor.sort({ date: -1 }).skip(page * perPage).limit(perPage).toArray()
-                const count = await reviewCollection.estimatedDocumentCount()
-                res.send({ count, result })
-
-            }
-
+            const cursor = reviewCollection.find(query)
+            const result = await cursor.toArray()
+            res.send(result)
         })
 
-
-
         //delete a review
-        app.delete('/review/:id', async (req, res) => {
+        app.delete('/review/delete/:id', async (req, res) => {
 
             const id = req.params.id
             const query = { _id: ObjectId(id) }
@@ -157,6 +192,7 @@ async function run() {
             const result = await reviewCollection.updateOne(query, updateReview, option)
             res.send(result)
         })
+
 
     }
 
